@@ -46,6 +46,25 @@ def test_recommend_returns_songs_sorted_by_score():
     assert results[0].mood == "happy"
 
 
+def test_artist_penalty_separates_repeat_artists():
+    from src.recommender import recommend_songs
+
+    def song(i, artist, energy):
+        return {
+            "id": i, "title": f"Song {i}", "artist": artist, "genre": "pop", "mood": "happy",
+            "energy": energy, "tempo_bpm": 100, "valence": 0.5, "danceability": 0.5, "acousticness": 0.5,
+        }
+
+    songs = [song(1, "A", 0.80), song(2, "A", 0.79), song(3, "B", 0.70)]
+    prefs = {"genre": "pop", "mood": "happy", "energy": 0.8}
+
+    plain = [s["id"] for s, _, _ in recommend_songs(prefs, songs, k=3)]
+    diverse = [s["id"] for s, _, _ in recommend_songs(prefs, songs, k=3, artist_penalty=1.0)]
+
+    assert plain == [1, 2, 3]       # no penalty: the two artist-A songs sit side by side
+    assert diverse == [1, 3, 2]     # penalty: artist B's song moves ahead of A's second song
+
+
 def test_explain_recommendation_returns_non_empty_string():
     user = UserProfile(
         favorite_genre="pop",
